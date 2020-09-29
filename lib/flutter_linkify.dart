@@ -5,15 +5,15 @@ import 'package:linkify/linkify.dart';
 
 export 'package:linkify/linkify.dart'
     show
-        LinkifyElement,
-        LinkifyOptions,
-        LinkableElement,
-        TextElement,
-        Linkifier,
-        UrlElement,
-        UrlLinkifier,
-        EmailElement,
-        EmailLinkifier;
+    LinkifyElement,
+    LinkifyOptions,
+    LinkableElement,
+    TextElement,
+    Linkifier,
+    UrlElement,
+    UrlLinkifier,
+    EmailElement,
+    EmailLinkifier;
 
 /// Callback clicked link
 typedef LinkCallback = void Function(LinkableElement link);
@@ -73,6 +73,8 @@ class Linkify extends StatelessWidget {
   /// Defines how the paragraph will apply TextStyle.height to the ascent of the first line and descent of the last line.
   final TextHeightBehavior? textHeightBehavior;
 
+  final InlineSpan Function(LinkableElement)? linkBuilder;
+
   const Linkify({
     Key? key,
     required this.text,
@@ -93,6 +95,7 @@ class Linkify extends StatelessWidget {
     this.locale,
     this.textWidthBasis = TextWidthBasis.parent,
     this.textHeightBehavior,
+    this.linkBuilder,
   }) : super(key: key);
 
   @override
@@ -109,14 +112,15 @@ class Linkify extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyText2?.merge(style),
         onOpen: onOpen,
         useMouseRegion: true,
+        linkBuilder: linkBuilder ?? defaultLinkBuilder,
         linkStyle: Theme.of(context)
             .textTheme
             .bodyText2
             ?.merge(style)
             .copyWith(
-              color: Colors.blueAccent,
-              decoration: TextDecoration.underline,
-            )
+          color: Colors.blueAccent,
+          decoration: TextDecoration.underline,
+        )
             .merge(linkStyle),
       ),
       textAlign: textAlign,
@@ -129,6 +133,17 @@ class Linkify extends StatelessWidget {
       locale: locale,
       textWidthBasis: textWidthBasis,
       textHeightBehavior: textHeightBehavior,
+    );
+  }
+
+  InlineSpan defaultLinkBuilder(LinkableElement element) {
+    return TextSpan(
+      text: element.text,
+      style: linkStyle,
+      recognizer: onOpen != null
+          ? (TapGestureRecognizer()
+        ..onTap = () => onOpen!(element))
+          : null,
     );
   }
 }
@@ -273,14 +288,15 @@ class SelectableLinkify extends StatelessWidget {
         elements,
         style: Theme.of(context).textTheme.bodyText2?.merge(style),
         onOpen: onOpen,
-        linkStyle: Theme.of(context)
+        linkStyle: Theme
+            .of(context)
             .textTheme
             .bodyText2
             ?.merge(style)
             .copyWith(
-              color: Colors.blueAccent,
-              decoration: TextDecoration.underline,
-            )
+          color: Colors.blueAccent,
+          decoration: TextDecoration.underline,
+        )
             .merge(linkStyle),
       ),
       textAlign: textAlign,
@@ -329,6 +345,7 @@ TextSpan buildTextSpan(
   TextStyle? style,
   TextStyle? linkStyle,
   LinkCallback? onOpen,
+  InlineSpan Function(LinkableElement element)? linkBuilder,
   bool useMouseRegion = false,
 }) {
   return TextSpan(
@@ -338,18 +355,18 @@ TextSpan buildTextSpan(
           if (useMouseRegion) {
             return LinkableSpan(
               mouseCursor: SystemMouseCursors.click,
-              inlineSpan: TextSpan(
+              inlineSpan: linkBuilder == null ? TextSpan(
                 text: element.text,
                 style: linkStyle,
                 recognizer: onOpen != null ? (TapGestureRecognizer()..onTap = () => onOpen(element)) : null,
-              ),
+              ) : linkBuilder(element),
             );
           } else {
-            return TextSpan(
+            return linkBuilder == null ? TextSpan(
               text: element.text,
               style: linkStyle,
               recognizer: onOpen != null ? (TapGestureRecognizer()..onTap = () => onOpen(element)) : null,
-            );
+            ) : linkBuilder(element);
           }
         } else {
           return TextSpan(
